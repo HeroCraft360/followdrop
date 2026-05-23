@@ -201,7 +201,6 @@ function getZipEntryType(path) {
 
 async function extractInstagramDataFromZip(file, onProgress) {
   const zip = await JSZip.loadAsync(file);
-
   const allFiles = Object.values(zip.files).filter((entry) => !entry.dir);
 
   const entries = allFiles
@@ -242,13 +241,8 @@ async function extractInstagramDataFromZip(file, onProgress) {
       const text = await entry.async("text");
       const extracted = extractUsernamesFromText(text, entry.name);
 
-      if (type === "followers") {
-        followers.push(...extracted);
-      }
-
-      if (type === "following") {
-        following.push(...extracted);
-      }
+      if (type === "followers") followers.push(...extracted);
+      if (type === "following") following.push(...extracted);
 
       if (extracted.length > 0) {
         filesUsed.push(entry.name);
@@ -289,26 +283,16 @@ function findXUsernames(data) {
     }
 
     if (value && typeof value === "object") {
-      if (typeof value.screenName === "string") {
-        usernames.push(value.screenName);
-      }
-
-      if (typeof value.username === "string") {
-        usernames.push(value.username);
-      }
-
-      if (typeof value.handle === "string") {
-        usernames.push(value.handle);
-      }
+      if (typeof value.screenName === "string") usernames.push(value.screenName);
+      if (typeof value.username === "string") usernames.push(value.username);
+      if (typeof value.handle === "string") usernames.push(value.handle);
 
       if (typeof value.userLink === "string") {
         const match = value.userLink.match(
           /https?:\/\/(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,15})/
         );
 
-        if (match) {
-          usernames.push(match[1]);
-        }
+        if (match) usernames.push(match[1]);
       }
 
       Object.values(value).forEach(walk);
@@ -426,13 +410,8 @@ async function extractXDataFromZip(file, onProgress) {
       const text = await entry.async("text");
       const extracted = extractXUsernamesFromText(text);
 
-      if (type === "followers") {
-        followers.push(...extracted);
-      }
-
-      if (type === "following") {
-        following.push(...extracted);
-      }
+      if (type === "followers") followers.push(...extracted);
+      if (type === "following") following.push(...extracted);
 
       if (extracted.length > 0) {
         filesUsed.push(entry.name);
@@ -504,7 +483,6 @@ function formatDate(dateString) {
 
 function filterUsernames(usernames, searchQuery) {
   const query = searchQuery.trim().replace("@", "").toLowerCase();
-
   if (!query) return usernames;
 
   return usernames.filter((username) => username.toLowerCase().includes(query));
@@ -649,7 +627,7 @@ function App() {
             "No follower usernames were found. Try uploading followers_1.html, followers_1.json, or a full Instagram data export ZIP."
         );
       }
-    } catch (error) {
+    } catch {
       setStatusMessage(
         "Something went wrong while reading this file. Try a JSON, HTML, TXT, CSV, or Instagram export ZIP."
       );
@@ -1636,6 +1614,15 @@ function App() {
           Privacy Policy
         </button>
       </footer>
+
+      <a
+        href="https://ko-fi.com/multiyt"
+        target="_blank"
+        rel="noreferrer"
+        className="floating-kofi-button"
+      >
+        ☕ Support me
+      </a>
     </main>
   );
 }
