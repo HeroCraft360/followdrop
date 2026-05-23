@@ -9,6 +9,11 @@ function isLikelyInstagramUsername(value) {
   return /^[A-Za-z0-9._]{1,30}$/.test(username);
 }
 
+function isLikelyXUsername(value) {
+  const username = String(value).trim().replace("@", "");
+  return /^[A-Za-z0-9_]{1,15}$/.test(username);
+}
+
 function cleanUsernames(usernames) {
   return [
     ...new Set(
@@ -16,6 +21,17 @@ function cleanUsernames(usernames) {
         .map((name) => String(name).trim().replace("@", ""))
         .filter(Boolean)
         .filter(isLikelyInstagramUsername)
+    ),
+  ];
+}
+
+function cleanXUsernames(usernames) {
+  return [
+    ...new Set(
+      usernames
+        .map((name) => String(name).trim().replace("@", ""))
+        .filter(Boolean)
+        .filter(isLikelyXUsername)
     ),
   ];
 }
@@ -250,6 +266,189 @@ async function extractInstagramDataFromZip(file, onProgress) {
   };
 }
 
+function parseXArchiveJS(text) {
+  const firstBracketIndex = text.indexOf("[");
+  const lastBracketIndex = text.lastIndexOf("]");
+
+  if (firstBracketIndex === -1 || lastBracketIndex === -1) {
+    throw new Error("No array found in X archive JS file.");
+  }
+
+  const jsonText = text.slice(firstBracketIndex, lastBracketIndex + 1);
+  return JSON.parse(jsonText);
+}
+
+function extractXUsernamesFromText(text) {
+  const usernames = [];
+
+  try {
+    const parsed = parseXArchiveJS(text);
+    usernames.push(...findXUsernames(parsed));
+  } catch {
+    const screenNameMatches = text.matchAll(/"screenName"\s*:\s*"([^"]+)"/g);
+    for (const match of screenNameMatches) {
+      usernames.push(match[1]);
+    }
+
+    const linkMatches = text.matchAll(
+      /https?:\/\/(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,15})/g
+    );
+
+    for (const match of linkMatches) {
+      usernames.push(match[1]);
+    }
+  }
+
+  return cleanXUsernames(usernames);
+}
+
+function findXUsernames(data) {
+  const usernames = [];
+
+  function walk(value) {
+    if (Array.isArray(value)) {
+      value.forEach(walk);
+      return;
+    }
+
+    if (value && typeof value === "object") {
+      if (typeof value.screenName === "string") {
+        usernames.push(value.screenName);
+      }
+
+      if (typeof value.username === "string") {
+        usernames.push(value.username);
+      }
+
+      if (typeof value.handle === "string") {
+        usernames.push(value.handle);
+      }
+
+      if (typeof value.userLink === "string") {
+        const match = value.userLink.match(
+          /https?:\/\/(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,15})/
+        );
+
+        if (match) {
+          usernames.push(match[1]);
+        }
+      }
+
+      Object.values(value).forEach(walk);
+    }
+  }
+
+  walk(data);
+  return cleanXUsernames(usernames);
+}
+
+function getXZipEntryType(path) {
+  const lowerPath = path.toLowerCase();
+  const fileName = lowerPath.split("/").pop() || "";
+
+  if (!fileName.endsWith(".js") && !fileName.endsWith(".json")) {
+    return "ignore";
+  }
+
+  const ignoredTerms = [
+    "blocked",
+    "muted",
+    "contacts",
+    "addressbook",
+    "verified",
+    "ad",
+    "personalization",
+    "direct-message",
+    "like",
+    "tweet",
+  ];
+
+  if (ignoredTerms.some((term) => lowerPath.includes(term))) {
+    return "ignore";
+  }
+
+  if (
+    fileName === "follower.js" ||
+    fileName.startsWith("follower-part") ||
+    fileName.includes("follower")
+  ) {
+    return "followers";
+  }
+
+  if (
+    fileName === "following.js" ||
+    fileName.startsWith("following-part") ||
+    fileName.includes("following")
+  ) {
+    return "following";
+  }
+
+  return "ignore";
+}
+
+async function extractXDataFromZip(file, onProgress) {
+  const zip = await JSZip.loadAsync(file);
+  const allFiles = Object.values(zip.files).filter((entry) => !entry.dir);
+
+  const usableEntries = allFiles
+    .map((entry) => ({
+      entry,
+      type: getXZipEntryType(entry.name),
+    }))
+    .filter((item) => item.type === "followers" || item.type === "following");
+
+  if (usableEntries.length === 0) {
+    return {
+      followers: [],
+      following: [],
+      filesUsed: [],
+      ignoredCount: allFiles.length,
+      message:
+        "No X follower.js or following.js files were found. Try uploading your full X/Twitter archive ZIP.",
+    };
+  }
+
+  const followers = [];
+  const following = [];
+  const filesUsed = [];
+
+  for (let index = 0; index < usableEntries.length; index++) {
+    const { entry, type } = usableEntries[index];
+
+    onProgress({
+      percent: Math.round(((index + 1) / usableEntries.length) * 100),
+      label: `Scanning ${entry.name}`,
+    });
+
+    try {
+      const text = await entry.async("text");
+      const extracted = extractXUsernamesFromText(text);
+
+      if (type === "followers") {
+        followers.push(...extracted);
+      }
+
+      if (type === "following") {
+        following.push(...extracted);
+      }
+
+      if (extracted.length > 0) {
+        filesUsed.push(entry.name);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return {
+    followers: cleanXUsernames(followers),
+    following: cleanXUsernames(following),
+    filesUsed,
+    ignoredCount: allFiles.length - usableEntries.length,
+    message: "",
+  };
+}
+
 function compareFollowers(oldFollowers, newFollowers) {
   const oldSet = new Set(oldFollowers.map((name) => name.toLowerCase()));
   const newSet = new Set(newFollowers.map((name) => name.toLowerCase()));
@@ -324,6 +523,15 @@ function App() {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingLabel, setProcessingLabel] = useState("");
 
+  const [xFollowers, setXFollowers] = useState([]);
+  const [xFollowing, setXFollowing] = useState([]);
+  const [xInsights, setXInsights] = useState(null);
+  const [xStatusMessage, setXStatusMessage] = useState("");
+  const [xSearchQuery, setXSearchQuery] = useState("");
+  const [isProcessingXFile, setIsProcessingXFile] = useState(false);
+  const [xProcessingProgress, setXProcessingProgress] = useState(0);
+  const [xProcessingLabel, setXProcessingLabel] = useState("");
+
   const filteredUnfollowed = results
     ? filterUsernames(results.unfollowed, searchQuery)
     : [];
@@ -348,6 +556,18 @@ function App() {
 
   const filteredMutuals = relationshipInsights
     ? filterUsernames(relationshipInsights.mutuals, relationshipSearchQuery)
+    : [];
+
+  const filteredXNotFollowingYouBack = xInsights
+    ? filterUsernames(xInsights.notFollowingYouBack, xSearchQuery)
+    : [];
+
+  const filteredXYouDoNotFollowBack = xInsights
+    ? filterUsernames(xInsights.youDoNotFollowBack, xSearchQuery)
+    : [];
+
+  const filteredXMutuals = xInsights
+    ? filterUsernames(xInsights.mutuals, xSearchQuery)
     : [];
 
   useEffect(() => {
@@ -431,6 +651,63 @@ function App() {
       );
     } finally {
       setIsProcessingFile(false);
+      event.target.value = "";
+    }
+  }
+
+  async function handleXFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setIsProcessingXFile(true);
+    setXProcessingProgress(5);
+    setXProcessingLabel("Preparing X archive...");
+    setXInsights(null);
+    setXSearchQuery("");
+    setXStatusMessage("Reading X archive...");
+
+    try {
+      if (!file.name.toLowerCase().endsWith(".zip")) {
+        setXStatusMessage("Please upload your full X/Twitter archive ZIP.");
+        return;
+      }
+
+      const zipResult = await extractXDataFromZip(file, (progress) => {
+        setXProcessingProgress(progress.percent);
+        setXProcessingLabel(progress.label);
+      });
+
+      setXProcessingProgress(100);
+      setXProcessingLabel("Finished scanning.");
+
+      setXFollowers(zipResult.followers);
+      setXFollowing(zipResult.following);
+
+      if (zipResult.followers.length > 0 && zipResult.following.length > 0) {
+        const insights = getRelationshipInsights(
+          zipResult.followers,
+          zipResult.following
+        );
+
+        setXInsights(insights);
+
+        setXStatusMessage(
+          `${zipResult.followers.length} X followers and ${zipResult.following.length} X following loaded. Ignored ${zipResult.ignoredCount} unrelated file(s). Used: ${zipResult.filesUsed.join(
+            ", "
+          )}`
+        );
+      } else {
+        setXStatusMessage(
+          zipResult.message ||
+            "Could not find both follower.js and following.js in this archive."
+        );
+      }
+    } catch {
+      setXStatusMessage(
+        "Something went wrong while reading this X archive. Try uploading the full X/Twitter archive ZIP."
+      );
+    } finally {
+      setIsProcessingXFile(false);
       event.target.value = "";
     }
   }
@@ -600,17 +877,37 @@ function App() {
     setStatusMessage("Relationship insights exported as CSV.");
   }
 
+  function exportXRelationshipCSV() {
+    if (!xInsights) return;
+
+    const rows = [
+      ["type", "username"],
+      ...xInsights.notFollowingYouBack.map((username) => [
+        "not_following_you_back",
+        username,
+      ]),
+      ...xInsights.youDoNotFollowBack.map((username) => [
+        "you_do_not_follow_back",
+        username,
+      ]),
+      ...xInsights.mutuals.map((username) => ["mutual", username]),
+    ];
+
+    downloadCSV(rows, "followdrop-x-insights");
+    setXStatusMessage("X insights exported as CSV.");
+  }
+
   return (
     <main className="app">
       <section className="hero">
-        <div className="hero-badge">Private Instagram follower insights</div>
+        <div className="hero-badge">Private social relationship insights</div>
 
         <h1>See who disappeared from your follower world.</h1>
 
         <p className="subtitle">
-          FollowDrop scans your Instagram export locally, compares followers and
-          following, and helps you understand who follows back — without asking
-          for your Instagram password.
+          FollowDrop scans your social data exports locally, compares followers
+          and following, and helps you understand who follows back — without
+          asking for your account password.
         </p>
 
         <div className="hero-actions">
@@ -625,7 +922,7 @@ function App() {
         <div className="trust-row">
           <div>
             <strong>No password</strong>
-            <span>No Instagram login required</span>
+            <span>No social media login required</span>
           </div>
 
           <div>
@@ -640,13 +937,45 @@ function App() {
         </div>
       </section>
 
+      <section className="mode-grid">
+        <a href="#upload-tool" className="mode-card active-mode-card">
+          <span>Instagram Mode</span>
+          <h3>Instagram follower insights</h3>
+          <p>
+            Upload your Instagram export ZIP to scan followers, following,
+            mutuals, and non-followbacks.
+          </p>
+          <strong>Available now →</strong>
+        </a>
+
+        <a href="#twitter-mode" className="mode-card active-mode-card">
+          <span>Twitter/X Mode</span>
+          <h3>X archive insights</h3>
+          <p>
+            Upload your X data archive to compare followers, following, and
+            mutuals.
+          </p>
+          <strong>Available now →</strong>
+        </a>
+
+        <a href="#facebook-mode" className="mode-card">
+          <span>Facebook Mode</span>
+          <h3>Facebook relationship insights</h3>
+          <p>
+            Upload a Facebook data export and analyze available friends,
+            followers, or following files.
+          </p>
+          <strong>Coming Soon →</strong>
+        </a>
+      </section>
+
       <section className="landing-grid">
         <div className="landing-card featured-card">
           <p className="card-kicker">Why FollowDrop?</p>
           <h2>Most unfollower apps feel sketchy. This one is built differently.</h2>
           <p>
-            FollowDrop does not ask for your Instagram password, does not log
-            into your account, and does not scrape Instagram. You upload your
+            FollowDrop does not ask for your account password, does not log into
+            your account, and does not scrape social platforms. You upload your
             own export, and the app analyzes it in your browser.
           </p>
         </div>
@@ -672,7 +1001,7 @@ function App() {
         <div className="section-heading centered-heading">
           <div>
             <h2>How it works</h2>
-            <p>Three simple steps. No third-party Instagram login.</p>
+            <p>Three simple steps. No third-party social media login.</p>
           </div>
         </div>
 
@@ -681,8 +1010,8 @@ function App() {
             <span>1</span>
             <h3>Upload your export</h3>
             <p>
-              Upload your Instagram data export ZIP, or a followers/following
-              HTML file.
+              Upload your social data export ZIP, or a followers/following file
+              from the platform.
             </p>
           </div>
 
@@ -691,7 +1020,7 @@ function App() {
             <h3>Scan locally</h3>
             <p>
               FollowDrop finds follower and following files while ignoring
-              unrelated files like contacts and recently unfollowed profiles.
+              unrelated files like contacts and blocked accounts.
             </p>
           </div>
 
@@ -709,7 +1038,7 @@ function App() {
       <section className="card" id="upload-tool">
         <div className="section-heading">
           <div>
-            <h2>Upload follower snapshot</h2>
+            <h2>Instagram Mode</h2>
             <p>
               Upload a JSON, HTML, TXT, CSV, or full Instagram data export ZIP
               file.
@@ -804,7 +1133,7 @@ function App() {
         <section className="relationship-section">
           <div className="section-heading">
             <div>
-              <h2>Relationship insights</h2>
+              <h2>Instagram relationship insights</h2>
               <p>
                 Based on the followers and following files from your Instagram
                 export.
@@ -837,7 +1166,7 @@ function App() {
           </div>
 
           <div className="search-card relationship-search">
-            <label htmlFor="relationshipSearch">Search relationship lists</label>
+            <label htmlFor="relationshipSearch">Search Instagram lists</label>
             <div className="search-row">
               <input
                 id="relationshipSearch"
@@ -915,11 +1244,191 @@ function App() {
         </section>
       )}
 
+      <section className="card" id="twitter-mode">
+        <div className="section-heading">
+          <div>
+            <p className="card-kicker">Twitter/X Mode</p>
+            <h2>X archive insights</h2>
+            <p>
+              Upload your full X/Twitter archive ZIP. FollowDrop will look for
+              follower.js and following.js.
+            </p>
+          </div>
+        </div>
+
+        <div className="single-upload">
+          <input
+            type="file"
+            accept=".zip"
+            onChange={handleXFileUpload}
+            disabled={isProcessingXFile}
+          />
+
+          <div className="upload-stats">
+            <strong>{xFollowers.length}</strong>
+            <span>X followers loaded</span>
+          </div>
+        </div>
+
+        {isProcessingXFile && (
+          <div className="progress-card">
+            <div className="progress-header">
+              <strong>Scanning X archive</strong>
+              <span>{xProcessingProgress}%</span>
+            </div>
+            <div className="progress-track">
+              <div
+                className="progress-fill"
+                style={{ width: `${xProcessingProgress}%` }}
+              />
+            </div>
+            <p>{xProcessingLabel}</p>
+          </div>
+        )}
+
+        <div className="helper-card">
+          <strong>Smart X archive support</strong>
+          <p>
+            FollowDrop looks for <span>follower.js</span> and{" "}
+            <span>following.js</span>. It ignores unrelated files like tweets,
+            likes, ads, muted accounts, blocked accounts, and contacts.
+          </p>
+        </div>
+
+        {xStatusMessage && <p className="status-message">{xStatusMessage}</p>}
+      </section>
+
+      {xInsights && (
+        <section className="relationship-section">
+          <div className="section-heading">
+            <div>
+              <h2>Twitter/X relationship insights</h2>
+              <p>
+                Based on follower.js and following.js from your X/Twitter
+                archive.
+              </p>
+            </div>
+
+            <button
+              className="export-button compact"
+              onClick={exportXRelationshipCSV}
+            >
+              Export X insights CSV
+            </button>
+          </div>
+
+          <div className="relationship-stats">
+            <div className="metric-card">
+              <span>Not following you back</span>
+              <strong>{xInsights.notFollowingYouBack.length}</strong>
+            </div>
+
+            <div className="metric-card">
+              <span>You do not follow back</span>
+              <strong>{xInsights.youDoNotFollowBack.length}</strong>
+            </div>
+
+            <div className="metric-card">
+              <span>Mutuals</span>
+              <strong>{xInsights.mutuals.length}</strong>
+            </div>
+          </div>
+
+          <div className="search-card relationship-search">
+            <label htmlFor="xSearch">Search X lists</label>
+            <div className="search-row">
+              <input
+                id="xSearch"
+                type="text"
+                placeholder="Search username..."
+                value={xSearchQuery}
+                onChange={(event) => setXSearchQuery(event.target.value)}
+              />
+
+              {xSearchQuery && (
+                <button
+                  className="clear-search-button"
+                  onClick={() => setXSearchQuery("")}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="relationship-grid">
+            <div className="result-card">
+              <h2>Not following you back</h2>
+              <p className="list-description">
+                Accounts you follow who do not follow you.
+              </p>
+
+              {filteredXNotFollowingYouBack.length === 0 ? (
+                <p className="empty">No usernames found.</p>
+              ) : (
+                <ul>
+                  {filteredXNotFollowingYouBack.map((name) => (
+                    <li key={name}>@{name}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="result-card">
+              <h2>You do not follow back</h2>
+              <p className="list-description">
+                Accounts who follow you, but you do not follow.
+              </p>
+
+              {filteredXYouDoNotFollowBack.length === 0 ? (
+                <p className="empty">No usernames found.</p>
+              ) : (
+                <ul>
+                  {filteredXYouDoNotFollowBack.map((name) => (
+                    <li key={name}>@{name}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="result-card">
+              <h2>Mutuals</h2>
+              <p className="list-description">
+                Accounts you follow who also follow you.
+              </p>
+
+              {filteredXMutuals.length === 0 ? (
+                <p className="empty">No usernames found.</p>
+              ) : (
+                <ul>
+                  {filteredXMutuals.map((name) => (
+                    <li key={name}>@{name}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="coming-mode-section" id="facebook-mode">
+        <div>
+          <p className="card-kicker">Facebook Mode</p>
+          <h2>Facebook export support is coming soon.</h2>
+          <p>
+            Facebook data exports vary more than Instagram and X, so this mode
+            should be built after testing a real Facebook export ZIP.
+          </p>
+        </div>
+
+        <div className="coming-mode-badge">Coming Soon</div>
+      </section>
+
       <section className="snapshot-layout">
         <div className="card">
           <div className="section-heading">
             <div>
-              <h2>Saved snapshots</h2>
+              <h2>Saved Instagram snapshots</h2>
               <p>{snapshots.length} saved locally in this browser.</p>
             </div>
 
@@ -1055,15 +1564,14 @@ function App() {
 
         <div className="faq-grid">
           <div className="faq-card">
-            <h3>Do I enter my Instagram password?</h3>
-            <p>No. FollowDrop does not ask for your Instagram login information.</p>
+            <h3>Do I enter my account password?</h3>
+            <p>No. FollowDrop does not ask for your login information.</p>
           </div>
 
           <div className="faq-card">
-            <h3>Does it automatically check Instagram?</h3>
+            <h3>Does it automatically check social apps?</h3>
             <p>
-              No. This MVP works by analyzing Instagram export files that you
-              provide.
+              No. This MVP works by analyzing export files that you provide.
             </p>
           </div>
 
@@ -1087,7 +1595,7 @@ function App() {
 
       <footer className="footer">
         <strong>FollowDrop</strong>
-        <span>Private follower insights without password sharing.</span>
+        <span>Private social insights without password sharing.</span>
       </footer>
     </main>
   );

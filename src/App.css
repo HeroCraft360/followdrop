@@ -811,3 +811,110 @@ li {
     width: 100%;
   }
 }
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin: 28px 0 24px;
+}
+
+.mode-card {
+  display: block;
+  text-decoration: none;
+  color: #f7f7f8;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.mode-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.active-mode-card {
+  background:
+    radial-gradient(circle at top left, rgba(236, 72, 153, 0.16), transparent 20rem),
+    linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(255, 255, 255, 0.055));
+  border-color: rgba(167, 139, 250, 0.32);
+}
+
+.mode-card span {
+  display: inline-flex;
+  color: #d8d5ff;
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin-bottom: 16px;
+}
+
+.mode-card h3 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.mode-card p {
+  color: #b8bdcc;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.mode-card strong {
+  color: #f7f7f8;
+}
+
+.coming-mode-section {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 30px;
+  padding: 25px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
+}
+
+.coming-mode-section h2 {
+  margin: 0 0 10px;
+  letter-spacing: -0.04em;
+  font-size: clamp(1.55rem, 3vw, 2.1rem);
+}
+
+.coming-mode-section p {
+  color: #b8bdcc;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 720px;
+}
+
+.coming-mode-badge {
+  white-space: nowrap;
+  color: #d8d5ff;
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 900;
+}
+
+@media (max-width: 1000px) {
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coming-mode-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
