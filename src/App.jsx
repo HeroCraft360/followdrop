@@ -637,11 +637,11 @@ function App() {
         setStatusMessage(
           `${followers.length} followers and ${following.length} following loaded from ${file.name}. Ignored ${ignoredCount} unrelated file(s). Used: ${filesUsed.join(
             ", "
-          )}`
+          )}. Reminder: this analysis reflects only this export snapshot, not your live Instagram account.`
         );
       } else if (followers.length > 0) {
         setStatusMessage(
-          `${followers.length} follower usernames loaded from ${file.name}.`
+          `${followers.length} follower usernames loaded from ${file.name}. Reminder: this analysis reflects only this export snapshot, not your live Instagram account.`
         );
       } else {
         setStatusMessage(
@@ -1096,6 +1096,17 @@ function App() {
             <span>recently_unfollowed_profiles</span>,{" "}
             <span>synced_contacts</span>, blocked profiles, close friends, and
             follow requests.
+          </p>
+        </div>
+
+        <div className="helper-card">
+          <strong>Data freshness reminder</strong>
+          <p>
+            Instagram exports are snapshots. Results only reflect the export
+            file you upload, not your live Instagram account. If someone
+            followed you after the export was created, they may not appear as a
+            mutual yet. For the most accurate results, upload the newest
+            Instagram export available.
           </p>
         </div>
 
