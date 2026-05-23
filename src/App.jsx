@@ -1069,18 +1069,22 @@ function App() {
         </div>
 
         {isProcessingFile && (
-          <div className="progress-card">
-            <div className="progress-header">
-              <strong>Scanning export</strong>
+          <div className="cloud-progress-card">
+            <div className="cloud-progress-top">
+              <div>
+                <strong>Scanning Instagram export</strong>
+                <p>{processingLabel}</p>
+              </div>
+
               <span>{processingProgress}%</span>
             </div>
-            <div className="progress-track">
+
+            <div className="cloud-progress-track">
               <div
-                className="progress-fill"
+                className="cloud-progress-fill"
                 style={{ width: `${processingProgress}%` }}
               />
             </div>
-            <p>{processingLabel}</p>
           </div>
         )}
 
@@ -1279,18 +1283,22 @@ function App() {
         </div>
 
         {isProcessingXFile && (
-          <div className="progress-card">
-            <div className="progress-header">
-              <strong>Scanning X archive</strong>
+          <div className="cloud-progress-card">
+            <div className="cloud-progress-top">
+              <div>
+                <strong>Scanning X archive</strong>
+                <p>{xProcessingLabel}</p>
+              </div>
+
               <span>{xProcessingProgress}%</span>
             </div>
-            <div className="progress-track">
+
+            <div className="cloud-progress-track">
               <div
-                className="progress-fill"
+                className="cloud-progress-fill"
                 style={{ width: `${xProcessingProgress}%` }}
               />
             </div>
-            <p>{xProcessingLabel}</p>
           </div>
         )}
 
