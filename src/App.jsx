@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import JSZip from "jszip";
 import "./App.css";
+import PrivacyPolicy from "./PrivacyPolicy";
 
 const STORAGE_KEY = "followdrop_snapshots";
 
@@ -278,30 +279,6 @@ function parseXArchiveJS(text) {
   return JSON.parse(jsonText);
 }
 
-function extractXUsernamesFromText(text) {
-  const usernames = [];
-
-  try {
-    const parsed = parseXArchiveJS(text);
-    usernames.push(...findXUsernames(parsed));
-  } catch {
-    const screenNameMatches = text.matchAll(/"screenName"\s*:\s*"([^"]+)"/g);
-    for (const match of screenNameMatches) {
-      usernames.push(match[1]);
-    }
-
-    const linkMatches = text.matchAll(
-      /https?:\/\/(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,15})/g
-    );
-
-    for (const match of linkMatches) {
-      usernames.push(match[1]);
-    }
-  }
-
-  return cleanXUsernames(usernames);
-}
-
 function findXUsernames(data) {
   const usernames = [];
 
@@ -339,6 +316,31 @@ function findXUsernames(data) {
   }
 
   walk(data);
+  return cleanXUsernames(usernames);
+}
+
+function extractXUsernamesFromText(text) {
+  const usernames = [];
+
+  try {
+    const parsed = parseXArchiveJS(text);
+    usernames.push(...findXUsernames(parsed));
+  } catch {
+    const screenNameMatches = text.matchAll(/"screenName"\s*:\s*"([^"]+)"/g);
+
+    for (const match of screenNameMatches) {
+      usernames.push(match[1]);
+    }
+
+    const linkMatches = text.matchAll(
+      /https?:\/\/(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,15})/g
+    );
+
+    for (const match of linkMatches) {
+      usernames.push(match[1]);
+    }
+  }
+
   return cleanXUsernames(usernames);
 }
 
@@ -509,6 +511,8 @@ function filterUsernames(usernames, searchQuery) {
 }
 
 function App() {
+  const [activePage, setActivePage] = useState("home");
+
   const [currentFollowers, setCurrentFollowers] = useState([]);
   const [currentFollowing, setCurrentFollowing] = useState([]);
   const [currentFileName, setCurrentFileName] = useState("");
@@ -897,6 +901,10 @@ function App() {
     setXStatusMessage("X insights exported as CSV.");
   }
 
+  if (activePage === "privacy") {
+    return <PrivacyPolicy onBackHome={() => setActivePage("home")} />;
+  }
+
   return (
     <main className="app">
       <section className="hero">
@@ -965,7 +973,7 @@ function App() {
             Upload a Facebook data export and analyze available friends,
             followers, or following files.
           </p>
-          <strong>Coming Soon →</strong>
+          <strong>Planned →</strong>
         </a>
       </section>
 
@@ -1414,14 +1422,14 @@ function App() {
       <section className="coming-mode-section" id="facebook-mode">
         <div>
           <p className="card-kicker">Facebook Mode</p>
-          <h2>Facebook export support is coming soon.</h2>
+          <h2>Facebook export support is planned.</h2>
           <p>
             Facebook data exports vary more than Instagram and X, so this mode
             should be built after testing a real Facebook export ZIP.
           </p>
         </div>
 
-        <div className="coming-mode-badge">Coming Soon</div>
+        <div className="coming-mode-badge">Planned</div>
       </section>
 
       <section className="snapshot-layout">
@@ -1594,8 +1602,20 @@ function App() {
       </section>
 
       <footer className="footer">
-        <strong>FollowDrop</strong>
-        <span>Private social insights without password sharing.</span>
+        <div>
+          <strong>FollowDrop</strong>
+          <span>Private social insights without password sharing.</span>
+        </div>
+
+        <button
+          className="footer-link-button"
+          onClick={() => {
+            setActivePage("privacy");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          Privacy Policy
+        </button>
       </footer>
     </main>
   );
