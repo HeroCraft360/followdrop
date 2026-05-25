@@ -147,9 +147,8 @@ function PrivacyPolicy({ onBackHome }) {
           <div className="policy-card" id="contact">
             <h2>9. Contact</h2>
             <p>
-              For now, FollowDrop is an MVP project. Before launching publicly
-              at scale, this privacy policy should be reviewed and customized
-              with official contact information.
+              For now, FollowDrop is an MVP project. If their are any bugs or
+              questions about the app, please contact the developer's email down below.
             </p>
             <p className="policy-note">
               Note: Contact david.business126@gmail.com for any questions or 

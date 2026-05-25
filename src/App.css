@@ -1043,24 +1043,34 @@ li {
   opacity: 0.92;
 }
 
-/* FLOATING KO-FI BUTTON */
+/* FLOATING KO-FI BUTTON - VERTICAL SIDE TAB */
 
 .floating-kofi-button {
   position: fixed;
-  left: 18px;
-  bottom: 18px;
+  left: 0;
+  bottom: 110px;
   z-index: 999;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+
   color: white;
   text-decoration: none;
   background: linear-gradient(135deg, #7c3aed, #a855f7);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  padding: 14px 20px;
+  border-left: none;
+
+  border-radius: 0 999px 999px 0;
+  padding: 14px 16px;
+  min-height: 150px;
+
+  font-size: 0.95rem;
   font-weight: 900;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+
   box-shadow: 0 18px 45px rgba(124, 58, 237, 0.35);
   transition:
     transform 0.16s ease,
@@ -1069,7 +1079,7 @@ li {
 }
 
 .floating-kofi-button:hover {
-  transform: translateY(-2px);
+  transform: translateX(3px);
   opacity: 0.94;
   box-shadow: 0 22px 55px rgba(124, 58, 237, 0.45);
 }
@@ -1190,17 +1200,18 @@ li {
   }
 
   .floating-kofi-button {
-    left: 14px;
-    right: auto;
-    bottom: 18px;
+    left: 0;
+    bottom: 105px;
     width: auto;
-    max-width: max-content;
-    padding: 12px 15px;
-    font-size: 0.92rem;
-    border-radius: 999px;
+    min-height: 135px;
+    padding: 13px 13px;
+    font-size: 0.86rem;
+    border-radius: 0 999px 999px 0;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
   }
 
   .footer {
-    padding-bottom: 84px;
+    padding-bottom: 40px;
   }
 }
