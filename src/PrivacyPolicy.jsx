@@ -16,7 +16,7 @@ function PrivacyPolicy({ onBackHome }) {
           without asking for your social media passwords.
         </p>
 
-        <p className="policy-updated">Last updated: May 23, 2026</p>
+        <p className="policy-updated">Last updated: May 25, 2026</p>
       </section>
 
       <section className="policy-layout">
