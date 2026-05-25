@@ -152,8 +152,8 @@ function PrivacyPolicy({ onBackHome }) {
               with official contact information.
             </p>
             <p className="policy-note">
-              Note: This privacy policy is a starter template for your project
-              and is not legal advice.
+              Note: Contact david.business126@gmail.com for any questions or 
+              concerns regarding this privacy policy.
             </p>
           </div>
         </section>

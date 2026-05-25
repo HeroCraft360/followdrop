@@ -170,7 +170,10 @@ h1 {
   border-radius: 30px;
   padding: 24px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
 }
 
 .mode-card:hover {
@@ -467,7 +470,89 @@ h1 {
   overflow-wrap: anywhere;
 }
 
-/* PROGRESS */
+/* CLOUDCONVERT-STYLE PROGRESS */
+
+.cloud-progress-card {
+  margin-top: 18px;
+  background: rgba(24, 27, 36, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+}
+
+.cloud-progress-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.cloud-progress-top strong {
+  display: block;
+  color: #f7f7f8;
+  font-size: 0.98rem;
+  margin-bottom: 6px;
+}
+
+.cloud-progress-top p {
+  margin: 0;
+  color: #b8bdcc;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.cloud-progress-top span {
+  color: #f7f7f8;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 0.86rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.cloud-progress-track {
+  position: relative;
+  height: 5px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.cloud-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #facc15, #f59e0b);
+  border-radius: 999px;
+  transition: width 0.28s ease;
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.35);
+}
+
+.cloud-progress-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: progress-shine 1.4s infinite;
+}
+
+@keyframes progress-shine {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* OLD PROGRESS FALLBACK */
 
 .progress-card {
   margin-top: 18px;
@@ -531,7 +616,10 @@ h1 {
   color: white;
   font-weight: 850;
   cursor: pointer;
-  transition: transform 0.16s ease, background 0.16s ease, opacity 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease,
+    opacity 0.16s ease;
 }
 
 .primary-button,
@@ -927,6 +1015,65 @@ li {
   width: auto;
 }
 
+/* OPTIONAL FOOTER ACTIONS */
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.kofi-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #11131b;
+  text-decoration: none;
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  border-radius: 999px;
+  padding: 13px 18px;
+  font-weight: 900;
+  box-shadow: 0 14px 34px rgba(250, 204, 21, 0.18);
+  transition: transform 0.16s ease, opacity 0.16s ease;
+}
+
+.kofi-button:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+/* FLOATING KO-FI BUTTON */
+
+.floating-kofi-button {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: white;
+  text-decoration: none;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 14px 20px;
+  font-weight: 900;
+  box-shadow: 0 18px 45px rgba(124, 58, 237, 0.35);
+  transition:
+    transform 0.16s ease,
+    opacity 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.floating-kofi-button:hover {
+  transform: translateY(-2px);
+  opacity: 0.94;
+  box-shadow: 0 22px 55px rgba(124, 58, 237, 0.45);
+}
+
 /* RESPONSIVE */
 
 @media (max-width: 1000px) {
@@ -991,6 +1138,16 @@ li {
   .footer-link-button {
     width: 100%;
   }
+
+  .footer-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .kofi-button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1023,89 +1180,7 @@ li {
   .button-row button {
     width: 100%;
   }
-}
 
-.cloud-progress-card {
-  margin-top: 18px;
-  background: rgba(24, 27, 36, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 18px;
-  padding: 18px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
-}
-
-.cloud-progress-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: flex-start;
-  margin-bottom: 14px;
-}
-
-.cloud-progress-top strong {
-  display: block;
-  color: #f7f7f8;
-  font-size: 0.98rem;
-  margin-bottom: 6px;
-}
-
-.cloud-progress-top p {
-  margin: 0;
-  color: #b8bdcc;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.cloud-progress-top span {
-  color: #f7f7f8;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  padding: 7px 11px;
-  font-size: 0.86rem;
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.cloud-progress-track {
-  position: relative;
-  height: 5px;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.13);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.cloud-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #facc15, #f59e0b);
-  border-radius: 999px;
-  transition: width 0.28s ease;
-  box-shadow: 0 0 18px rgba(250, 204, 21, 0.35);
-}
-
-.cloud-progress-track::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.22),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: progress-shine 1.4s infinite;
-}
-
-@keyframes progress-shine {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@media (max-width: 520px) {
   .cloud-progress-top {
     flex-direction: column;
   }
@@ -1113,81 +1188,19 @@ li {
   .cloud-progress-top span {
     align-self: flex-start;
   }
-}
 
-.footer-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.kofi-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #11131b;
-  text-decoration: none;
-  background: linear-gradient(135deg, #facc15, #f59e0b);
-  border-radius: 999px;
-  padding: 13px 18px;
-  font-weight: 900;
-  box-shadow: 0 14px 34px rgba(250, 204, 21, 0.18);
-  transition: transform 0.16s ease, opacity 0.16s ease;
-}
-
-.kofi-button:hover {
-  transform: translateY(-1px);
-  opacity: 0.92;
-}
-
-@media (max-width: 850px) {
-  .footer-actions {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .kofi-button,
-  .footer-link-button {
-    width: 100%;
-  }
-}
-
-.floating-kofi-button {
-  position: fixed;
-  left: 18px;
-  bottom: 18px;
-  z-index: 999;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: white;
-  text-decoration: none;
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  padding: 14px 20px;
-  font-weight: 900;
-  box-shadow: 0 18px 45px rgba(124, 58, 237, 0.35);
-  transition:
-    transform 0.16s ease,
-    opacity 0.16s ease,
-    box-shadow 0.16s ease;
-}
-
-.floating-kofi-button:hover {
-  transform: translateY(-2px);
-  opacity: 0.94;
-  box-shadow: 0 22px 55px rgba(124, 58, 237, 0.45);
-}
-
-@media (max-width: 520px) {
   .floating-kofi-button {
     left: 14px;
-    right: 14px;
-    bottom: 14px;
-    width: calc(100% - 28px);
+    right: auto;
+    bottom: 18px;
+    width: auto;
+    max-width: max-content;
+    padding: 12px 15px;
+    font-size: 0.92rem;
+    border-radius: 999px;
+  }
+
+  .footer {
+    padding-bottom: 84px;
   }
 }
